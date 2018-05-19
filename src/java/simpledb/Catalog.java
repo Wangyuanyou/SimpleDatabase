@@ -17,6 +17,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+	private Map<String,Integer> nameToIndex;
+	private Map<Integer,Integer> idToIndex;
+	private ArrayList<String> tableNameList;
+	private ArrayList<DbFile> dbFileList;
+	private ArrayList<Integer> tableIdList;
+	private ArrayList<String> pKeyList;
+	
 
     /**
      * Constructor.
@@ -24,6 +31,13 @@ public class Catalog {
      */
     public Catalog() {
         // some code goes here
+    	nameToIndex= new ConcurrentHashMap<String,Integer>();
+    	idToIndex= new ConcurrentHashMap<Integer,Integer>();
+    	
+    	tableNameList= new ArrayList<String>();
+    	dbFileList= new ArrayList<DbFile>();
+    	tableIdList = new ArrayList<Integer>();
+    	pKeyList = new ArrayList<String>();
     }
 
     /**
@@ -37,6 +51,25 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+    	if(!nameToIndex.containsKey(name)){
+    		Integer curFileID=file.getId();
+    		Integer newIndex=dbFileList.size();
+    		tableNameList.add(name);
+    		dbFileList.add(file);
+    		tableIdList.add(curFileID);
+    		pKeyList.add(pkeyField);
+    		nameToIndex.put(name, newIndex);
+    		idToIndex.put(curFileID,newIndex);
+    	}else{
+    		Integer targetIndex=nameToIndex.get(name);
+    		Integer orderFileID=tableIdList.get(targetIndex);
+    		Integer curFileID=file.getId();
+    		dbFileList.set(targetIndex, file);
+    		tableIdList.set(targetIndex, curFileID);
+    		pKeyList.set(targetIndex,pkeyField);
+    		idToIndex.remove(orderFileID);
+    		idToIndex.put(curFileID,targetIndex);
+    	}
     }
 
     public void addTable(DbFile file, String name) {
@@ -60,7 +93,13 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+    	if(name==null)
+    		throw new NoSuchElementException("The search name is null!");
+    	if(nameToIndex.containsKey(name)){
+    		return  tableIdList.get(  nameToIndex.get(name));
+    	}else{
+    		throw new NoSuchElementException("There is no table matching this name!");
+    	}
     }
 
     /**
@@ -71,7 +110,11 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+    	if(idToIndex.containsKey(tableid)){
+    		return dbFileList.get(idToIndex.get(tableid)).getTupleDesc();
+    	}else{
+    		throw new NoSuchElementException("There is no table match this tableid!");
+    	}
     }
 
     /**
@@ -82,27 +125,47 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+    	if(idToIndex.containsKey(tableid)){
+    		return dbFileList.get(idToIndex.get(tableid));
+    	}else{
+    		throw new NoSuchElementException("There is no table match this tableid!");
+    	}
     }
 
-    public String getPrimaryKey(int tableid) {
+    public String getPrimaryKey(int tableid) throws NoSuchElementException{
         // some code goes here
-        return null;
+    	if(idToIndex.containsKey(tableid)){
+    		return pKeyList.get(idToIndex.get(tableid));
+    	}else{
+    		throw new NoSuchElementException("There is no table match this tableid!");
+    	}
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return tableIdList.iterator();
     }
 
-    public String getTableName(int id) {
+    public String getTableName(int id) throws NoSuchElementException{
         // some code goes here
-        return null;
+    	if(idToIndex.containsKey(id)){
+    		return tableNameList.get(idToIndex.get(id));
+    	}else{
+    		throw new NoSuchElementException("There is no table match this tableid!");
+    	}
+    	
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+    	nameToIndex.clear();
+    	idToIndex.clear();
+    	
+    	tableNameList.clear();
+    	dbFileList.clear();
+    	tableIdList.clear();
+    	pKeyList.clear();
     }
     
     /**
